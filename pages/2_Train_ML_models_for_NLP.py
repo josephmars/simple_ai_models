@@ -10,9 +10,19 @@ st.subheader("""
              """)
 
 st.subheader("Training data")
-data = st.file_uploader("Upload your training data", type=("csv"))
+train_file = st.file_uploader("Upload your training data", type=("csv"))
 
 
 st.subheader("Testing data")
-data = st.file_uploader("Upload your testing data", type=("csv"))
+test_file = st.file_uploader("Upload your testing data", type=("csv"))
+
+if train_file is not None:
+    model_name = st.sidebar.selectbox(
+    'Select Model',
+    ('RFC','KNN'))
+    
+    if model_name in ['RFC','KNN']:
+        embedding_method = st.sidebar.selectbox(
+        'Select Embedding method (default: TFIDF)',
+        ('OHE','TF', 'TFIDF')).lower()
 

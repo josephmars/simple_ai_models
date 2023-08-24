@@ -1,13 +1,26 @@
-### All of these are Jairo's functions for linear classifiers
-import pickle
-import pandas as pd
-import numpy as np
-import nltk
+"""Functions for linear classifiers
+"""
+
+
+
 import re 
 from os import makedirs, path
+
+
+import nltk
 import joblib
-from nltk.stem import WordNetLemmatizer
+import pickle
+import numpy as np
+import pandas as pd
 from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split
+
+
+from scripts.linear_classifiers_functions import Tokenizer, Embedder
 
 
 class Tokenizer():
@@ -371,3 +384,45 @@ def apply_word_count_encoding(tokenized_X,vocab,binary=True):
     
   #sequence_vector[keys.index(token)] = 1
   return results
+
+
+def train_model(model_name: str, embedding_method = 'tfidf', training_data = pd.DataFrame(), TRAINING_INPUT_COLUMN = "text", TRAINING_LABEL_COLUMN = "label"):
+  nltk.download('stopwords')
+  nltk.download('wordnet')
+  nltk.download('omw-1.4')
+  
+  df_original = training_data
+  categories = list(np.unique(df_original[TRAINING_LABEL_COLUMN]))
+
+  # ETL
+  df = df_original.copy()
+  tokenizer = Tokenizer()
+  tokenizer.fit(list(df[TRAINING_INPUT_COLUMN]),
+                min_token_aparison=5,
+                stopwords= list(nltk.corpus.stopwords.words('english'))
+  )
+
+  embedders = {}
+  embedder = Embedder(tokenizer.VOCAB)
+
+  df["tokenized"] = tokenizer.transform(list(df[TRAINING_INPUT_COLUMN]))
+
+  embedders[embedding_method] = embedder
+  embedders[embedding_method].fit(list(df["tokenized"]),mode=embedding_method)
+  df[embedding_method] = list(embedders[embedding_method].transform(list(df["tokenized"])))
+
+  if model_name == 'KNN':
+    classifier  = KNeighborsClassifier(
+        n_neighbors=5,
+        metric='euclidean'
+    )
+  elif model_name == 'RFC':
+    classifier = RandomForestClassifier(
+    random_state=0)
+
+  classifier.fit(
+        X= list(df[embedding_method]),
+        y= list(df[TRAINING_LABEL_COLUMN])
+  )
+    
+  return [tokenizer, embedder, classifier]
